@@ -10,6 +10,7 @@ import Foundation
 //MARK: - Trending Item
 
 struct TrendingItem {
+    
     var title: String
     var approx_traffic: String
     var picture: String

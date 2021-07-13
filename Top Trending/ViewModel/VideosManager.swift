@@ -11,8 +11,6 @@ import Alamofire
 class VideosManager {
     
     //MARK: - Properties
-    
-    weak var searchViewController: SearchViewController?
  
     var videosYoutube = [VideoModel]()
  
@@ -26,12 +24,8 @@ class VideosManager {
     
     //MARK: - Function
     
-    func fetchVieos(search keyword: String) {
-        performRequest(from: baseUrlVideo, keywordSearch: keyword, apiKey: apiKey)
-    }
- 
     // handler call API and fetch response data to Array type VideoModel
-    private func performRequest(from url: String, keywordSearch: String, apiKey: String) {
+    func fetchVideos(search keyword: String, completion: @escaping (_ result: [VideoModel]) -> Void) {
  
         var listVideos = [VideoModel]()
         let group = DispatchGroup()
@@ -44,7 +38,7 @@ class VideosManager {
         var numberOfView = ""
         var idChannel = ""
  
-        AF.request(url, method: .get, parameters: ["part": "snippet", "maxResults": 25, "key" : apiKey, "q" : keywordSearch]).responseDecodable(of: VideoData.self) { [self] (responseData) in
+        AF.request(baseUrlVideo, method: .get, parameters: ["part": "snippet", "maxResults": 25, "key" : apiKey, "q" : keyword]).responseDecodable(of: VideoData.self) { [weak self] (responseData) in
     
             let videos = responseData.value
  
@@ -56,10 +50,10 @@ class VideosManager {
             for video in videosYou {
                 group.enter()
                 
-                getView(id: video.id.videoId) { viewsData in
+                self?.getView(id: video.id.videoId) { viewsData in
                     
                     group.enter()
-                    getImageChannelUrl(id: video.snippet.channelId) { channelData in
+                    self?.getImageChannelUrl(id: video.snippet.channelId) { channelData in
                         
                         titleVideo = video.snippet.title
                         authorVideo = video.snippet.channelTitle
@@ -83,10 +77,11 @@ class VideosManager {
                 
             }
             
-            group.notify(queue: .main) { [self] in
-                videosYoutube = listVideos
-                searchViewController?.tableView.reloadSections(IndexSet(integer: 0), with: .bottom)
-                searchViewController?.searchVC.dismiss(animated: true, completion: nil)
+            group.notify(queue: .main) { [weak self] in
+                self?.videosYoutube = listVideos
+                if let arrayVideosYoutube = self?.videosYoutube {
+                    completion(arrayVideosYoutube)
+                }
             }
             
         }

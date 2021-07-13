@@ -12,7 +12,7 @@ class TrendingManager: NSObject, XMLParserDelegate {
     
     //MARK: - Properties
     
-    weak var mainViewController: MainViewController?
+    fileprivate let baseUrlGoogleTrending = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=VN"
     
     var trendingItem = [TrendingItem]()
     
@@ -56,9 +56,9 @@ class TrendingManager: NSObject, XMLParserDelegate {
     
     //MARK: - Functions
     
-    private func parseFeed(url: String) {
+    func parseFeed(completion: @escaping (_ results: [TrendingItem]) -> Void) {
         
-        AF.request(url).response { (responseData) in
+        AF.request(baseUrlGoogleTrending).response { (responseData) in
             
             guard let safeData = responseData.data else {
                 print("error = \(Error.self)")
@@ -70,13 +70,13 @@ class TrendingManager: NSObject, XMLParserDelegate {
             parser.delegate = self
             parser.parse()
             
-            DispatchQueue.main.async { [self] in
-                mainViewController?.tableView.reloadSections(IndexSet(integer: 0), with: .right)
+            DispatchQueue.main.async { [weak self] in
+                if let arrayItemsTrending = self?.trendingItem {
+                    completion(arrayItemsTrending)
+                }
             }
-
         }
-        
-}
+    }
     
     //MARK: - Parser XML Delegate
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
@@ -94,6 +94,7 @@ class TrendingManager: NSObject, XMLParserDelegate {
     }
     
     func parser(_ parser: XMLParser, foundCharacters string: String) {
+        
         switch currentElement {
         case "title":
             currentTitle += string
@@ -128,10 +129,6 @@ class TrendingManager: NSObject, XMLParserDelegate {
     
     func parser(_ parser: XMLParser, parseErrorOccurred parseError: Error) {
         print(parseError.localizedDescription)
-    }
-    
-    func fetchData() {
-        parseFeed(url: "https://trends.google.com/trends/trendingsearches/daily/rss?geo=VN")
     }
     
 }

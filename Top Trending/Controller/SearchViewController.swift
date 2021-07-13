@@ -17,6 +17,8 @@ class SearchViewController: UIViewController {
     
     let searchVC = UISearchController(searchResultsController: nil)
     
+    var videosModel = [VideoModel]()
+    
     //MARK: - Override Methods
     
     override func viewDidLoad() {
@@ -27,11 +29,17 @@ class SearchViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.separatorStyle = .none
-        videosManager.searchViewController = self
         
         tableView.register(UINib(nibName: Constants.Identifier.cellNibNameSearch, bundle: nil), forCellReuseIdentifier: Constants.Identifier.cellIdentifierSearch)
         
-        videosManager.fetchVieos(search: "Macbook Pro M1")
+//        videosManager.fetchVieos(search: "Macbook Pro M1")
+        videosManager.fetchVideos(search: "Macbook Pro M1") { [weak self] (arrayVideosModel) in
+            self?.videosModel = arrayVideosModel
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.tableView.reloadData()
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -53,13 +61,13 @@ extension SearchViewController: UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return videosManager.videosYoutube.count
+        return videosModel.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: Constants.Identifier.cellIdentifierSearch, for: indexPath) as! CustomTableViewCellSearch
         
-        let item = videosManager.videosYoutube[indexPath.row]
+        let item = videosModel[indexPath.row]
         cell.item = item
         
         cell.selectionStyle = .none
@@ -78,7 +86,7 @@ extension SearchViewController: UITableViewDataSource {
 extension SearchViewController: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let video = videosManager.videosYoutube[indexPath.row]
+        let video = videosModel[indexPath.row]
         let playerVideoVC = PlayerViewController()
         playerVideoVC.idVideo = video.idVideo
         self.navigationController?.pushViewController(playerVideoVC, animated: true)
@@ -99,7 +107,14 @@ extension SearchViewController: UISearchBarDelegate {
         guard let content = searchBar.text, !content.isEmpty else {
             return
         }
-        videosManager.fetchVieos(search: content)
+        
+        videosManager.fetchVideos(search: content) { [weak self] (resultVideosModel) in
+            self?.videosModel = resultVideosModel
+            DispatchQueue.main.async { [weak self] in
+                self?.tableView.reloadData()
+                self?.searchVC.dismiss(animated: true, completion: nil)
+            }
+        }
     }
     
 }
